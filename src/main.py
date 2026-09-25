@@ -164,7 +164,7 @@ class Game:
             ## draw connector lines
             for yi in range(self.height): 
                 yf = yi * Game.Lamp.CELL_SIZE
-                pygame.draw.line(
+                pygame.draw.aaline(
                     Viewport.surface,
                     Game.Lamp.COLOR_LINE,
                     Viewport.world_to_screen(0, yf),
@@ -172,7 +172,7 @@ class Game:
                 )
             for xi in range(self.width):
                 xf = xi * Game.Lamp.CELL_SIZE
-                pygame.draw.line(
+                pygame.draw.aaline(
                     Viewport.surface,
                     Game.Lamp.COLOR_LINE,
                     Viewport.world_to_screen(xf, 0),
@@ -185,13 +185,13 @@ class Game:
                         lamp.ix * Game.Lamp.CELL_SIZE,
                         lamp.iy * Game.Lamp.CELL_SIZE
                     )
-                    pygame.draw.circle(
+                    pygame.draw.aacircle(
                         Viewport.surface,
                         "white",
                         (x - Viewport.rect.x, y - Viewport.rect.y),
                         Game.Lamp.SIZE // 2
                     )
-                    pygame.draw.circle(
+                    pygame.draw.aacircle(
                         Viewport.surface,
                         Game.Lamp.COLOR_ON if lamp.state == Game.Lamp.ON else "gray",
                         (x - Viewport.rect.x, y - Viewport.rect.y),
@@ -217,7 +217,7 @@ def on_mousepress(button: int) -> None:
 ## good 'ol ~~async~~ main()
 async def main():
     global lampgrid
-    
+
     ## testing purposes
     lampgrid = Game.Lampgrid(20, 20)
 
