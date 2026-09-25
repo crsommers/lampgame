@@ -2,6 +2,7 @@ from __future__ import annotations
 import asyncio
 import pygame
 from typing import Literal
+from random import randint
 
 ## pygame setup
 pygame.init()
@@ -137,6 +138,15 @@ class Game:
 
         def __str__(self) -> str: return f"Lamp<ix={self.ix},iy={self.iy},state={self.state}>"
 
+    class Cell:
+        @staticmethod
+        def color(total: int) -> tuple[int, int, int]:
+            match total:
+                case 0: return (200, 50, 50)
+                case 1: return (200, 200, 50)
+                case 2: return (50, 200, 50)
+                case 3: return (50, 50, 200)
+                case 4: return (200, 50, 200)
 
     class Lampgrid:
         def __init__(self, width: int, height: int):
@@ -146,12 +156,27 @@ class Game:
             self.world_width = (width - 1) * Game.Lamp.CELL_SIZE  ## ensure updates to this when width changes
             self.world_height = (height - 1) * Game.Lamp.CELL_SIZE  ## ensure updates to this when width changes
 
+            self.gen_lamps = [[randint(0, 1) for _ in range(width)] for _ in range(height)]
+            self.gen_cells = [[
+                    self.gen_lamps[iy][ix] + self.gen_lamps[iy+1][ix] + \
+                    self.gen_lamps[iy+1][ix+1] + self.gen_lamps[iy][ix+1]
+                for ix in range(width - 1) ] 
+            for iy in range(height - 1) ]
+
         def __iter__(self):
             for row in self.lamps:
                 for lamp in row: yield lamp
         
         def __getitem__(self, index: int) -> list[Game.Lamp]:
             return self.lamps[index]
+
+        def user_cell_value(self, ix: int, iy: int) -> int:
+            """cells are indexed by their top left lamp"""
+            return self.lamps[iy][ix].state + self.lamps[iy+1][ix].state + \
+                    self.lamps[iy+1][ix+1].state + self.lamps[iy][ix+1].state
+
+        def refresh_gen_lamps(self) -> None:
+            self.gen_lamps = [[randint(0, 1) for _ in range(self.width)] for _ in range(self.height)]
         
         def set_lamp_state(self, ix: int, iy: int, state: int):
             self.lamps[iy][ix] = state
@@ -161,17 +186,29 @@ class Game:
 
         def draw_to_port(self) -> None:
             """Draws every lamp to the viewport with the current camera offset."""
+            ## Represent cell target value as a color
+            for iy in range(self.height-1):
+                for ix in range(self.width-1):
+                    pygame.draw.rect(
+                        Viewport.surface,
+                        Game.Cell.color(self.gen_cells[iy][ix]),
+                        pygame.Rect(
+                            *Viewport.world_to_screen(ix * Game.Lamp.CELL_SIZE, iy * Game.Lamp.CELL_SIZE),
+                            Game.Lamp.CELL_SIZE, Game.Lamp.CELL_SIZE
+                        )
+                    )
+
             ## draw connector lines
-            for yi in range(self.height): 
-                yf = yi * Game.Lamp.CELL_SIZE
+            for iy in range(self.height): 
+                yf = iy * Game.Lamp.CELL_SIZE
                 pygame.draw.aaline(
                     Viewport.surface,
                     Game.Lamp.COLOR_LINE,
                     Viewport.world_to_screen(0, yf),
                     Viewport.world_to_screen(self.world_width, yf)
                 )
-            for xi in range(self.width):
-                xf = xi * Game.Lamp.CELL_SIZE
+            for ix in range(self.width):
+                xf = ix * Game.Lamp.CELL_SIZE
                 pygame.draw.aaline(
                     Viewport.surface,
                     Game.Lamp.COLOR_LINE,
